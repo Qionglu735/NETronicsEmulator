@@ -1,0 +1,162 @@
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+</head>
+<body>
+    <div style="margin-bottom: 5px">
+        <label>Server Script:
+            <input id="server_script_url" placeholder="NetMaze.js" value="NetMaze.js">
+        </label>
+    </div>
+    <div style="display: inline-block">
+        <div id="screen" style="display: inline-block; border: 1px solid #000000"></div>
+    </div>
+</body>
+</html>
+
+<script>
+
+    let PIXEL_WIDTH = 9;
+    let PIXEL_HEIGHT = 12;
+    let PIXEL_TEXT_OFFSET_X = 7;
+    let PIXEL_TEXT_OFFSET_Y = 11;
+
+    // let PIXEL_WIDTH = 18;
+    // let PIXEL_HEIGHT = 24;
+    // let PIXEL_TEXT_OFFSET_X = 12;
+    // let PIXEL_TEXT_OFFSET_Y = 20;
+
+    let SCREEN_WIDTH = 60;
+    let SCREEN_HEIGHT = 20;
+
+    let clearScreen = function() {
+        // Clear the screen.
+        for(let y of Array.from(Array(SCREEN_HEIGHT).keys())) {
+            for(let x of Array.from(Array(SCREEN_WIDTH).keys())) {
+                let canvas_id = "pixel_" + x + "_" + y;
+                let canvas = document.getElementById(canvas_id);
+                let context = canvas.getContext("2d");
+                context.fillStyle = "#000000";
+                context.textAlign = "center";
+                context.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+    };
+    let drawText = function(text, color, x, y) {
+        // Draw the specified text. The color parameter is a number between 0 (darkest) and 17 (lightest).
+        let x_indent = 0;
+        for(let ch of text) {
+            let canvas_id = "pixel_" + (x + x_indent).toString() + "_" + y;
+            let canvas = document.getElementById(canvas_id);
+            let context = canvas.getContext("2d");
+            context.fillStyle = "#000000";
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.beginPath();
+            context.font = PIXEL_HEIGHT + "px monospace";
+            // context.font = "12px monospace";
+            context.fillStyle = "hsl(0, 0%, " + Math.floor((1 - color / 17.0) * 100) + "%)";
+            context.fillText(ch, PIXEL_TEXT_OFFSET_X, PIXEL_TEXT_OFFSET_Y)
+            x_indent += 1;
+            if(x_indent >= SCREEN_WIDTH) {
+                break
+            }
+        }
+    };
+    let drawTextWrapped = function() {
+        // Draw the specified text, wrapping it so that it is no more than width characters wide.
+        let x_indent = 0;
+        let y_indent = 0;
+        for(let ch of text) {
+            let canvas_id = "pixel_" + (x + x_indent).toString() + "_" + y;
+            let canvas = document.getElementById(canvas_id);
+            let context = canvas.getContext("2d");
+            context.fillStyle = "#000000";
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.beginPath();
+            context.font = PIXEL_HEIGHT + "px monospace";
+            // context.font = "12px monospace";
+            console.log(color)
+            context.fillStyle = "hsl(0, 0%, " + Math.floor(color / 17.0 * 100) + "%)";
+            context.fillText(ch, PIXEL_TEXT_OFFSET_X, PIXEL_TEXT_OFFSET_Y)
+            x_indent += 1;
+            if(x_indent >= SCREEN_WIDTH) {
+                y_indent += 1;
+                if(y_indent >= SCREEN_HEIGHT) {
+                    break;
+                }
+                x_indent = 0;
+            }
+        }
+    }
+    let drawBox = function() {
+        // Draw a box using the built-in box drawing characters.
+    }
+    let fillArea = function() {
+        // Fill an area using the specified symbol.
+    }
+    let saveData = function() {
+        // Write this server's persisted data string. You can convert a JavaScript object to a JSON string using JSON.stringify().
+    }
+    let loadData = function() {
+        // Read this server's persisted data string. You can convert a JSON string to a JavaScript object using JSON.parse().
+    }
+
+    let init_screen = function() {
+        let screen = document.getElementById("screen");
+        screen.style.width = (PIXEL_WIDTH * SCREEN_WIDTH).toString() + "px";
+        screen.style.height = (PIXEL_HEIGHT * SCREEN_HEIGHT).toString() + "px";
+
+        let screen_pixel_row_list = []
+        for(let y of Array.from(Array(SCREEN_HEIGHT).keys())) {
+            let row_pixel_list = [];
+            for(let x of Array.from(Array(SCREEN_WIDTH).keys())) {
+                let canvas_id = "pixel_" + x + "_" + y;
+                row_pixel_list.push(
+                    "<canvas id='" + canvas_id + "' width='" + PIXEL_WIDTH + "' height='" + PIXEL_HEIGHT  + "' " +
+                    "style='width: " + PIXEL_WIDTH + "px; height: " + PIXEL_HEIGHT + "px'></canvas>"
+                )
+            }
+            screen_pixel_row_list.push("<div>" + row_pixel_list.join("") + "</div>");
+        }
+        screen.innerHTML = screen_pixel_row_list.join("");
+        clearScreen()
+    }
+
+    let load_server_script = function() {
+        document.getElementById("server_script_url").addEventListener("change", function() {
+            let script = document.getElementById("server_script");
+            if(script != null) {
+                script.remove()
+            }
+            script = document.createElement("script");
+            script.id = "server_script";
+            script.src = "NetMaze.js";
+            document.head.appendChild(script)
+            script.onload = function() {
+                console.log("getName()", getName())
+                console.log("onConnect()", onConnect())
+                document.addEventListener("keydown", function(event) {
+                    // console.log(event)
+                    if(event.ctrlKey && event.key === "r") {
+                        event.preventDefault();
+                        console.log("onUpdate()", onUpdate())
+                    }
+                    else if(event.ctrlKey) {}
+                    else {
+                        console.log("onInput(" + event.keyCode + ")", onInput(event.keyCode))
+                    }
+                })
+            }
+        });
+        let default_script = document.getElementById("server_script");
+        if(default_script == null) {
+            document.getElementById("server_script_url").dispatchEvent(new Event("change"));
+        }
+    }
+
+    init_screen();
+    load_server_script();
+    // drawText("Hello World", 0, 0, 0)
+</script>
