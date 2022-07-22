@@ -2,19 +2,42 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title></title>
+    <title>NETronics Emulator</title>
 </head>
 <body>
-    <div style="margin-bottom: 5px">
-        <label>Server Script:
-            <input id="server_script_url" placeholder="NetMaze.js" value="NetMaze.js">
+    <div style="width: 508px; margin-bottom: 5px">
+        <label style="width: 508px">Server Script:
+            <input id="server_script_url" style="width: 400px; float: right"
+                   value="https://qionglu735.github.io/NETronicsEmulator/Example_Server.js">
         </label>
     </div>
-    <div style="display: inline-block">
-        <div id="screen" style="display: inline-block; border: 1px solid #000000"></div>
+    <div style="margin-bottom: 10px">
+        <div style="display: inline-block; border: 1px solid #000000">
+            <div id="screen" style="display: inline-block; border: 1px solid #ffffff"></div>
+        </div>
+    </div>
+    <div style="width: 508px">
+        <span id="button_pause" class="button" title="stop callng onUpdate()">Pause</span>
+        <span id="button_step" class="button" title="call onUpdate() once">Step</span>
+        <span id="button_run" class="button" title="call onUpdate() continuously">Run</span>
+        <span id="button_reload" class="button" title="reload server script">Reload</span>
+        <label style="float: right">Update Intervals(ms):
+            <input id="update_intervals" style="width: 50px" value="500">
+        </label>
     </div>
 </body>
 </html>
+
+<style>
+    .button {
+        border: 1px solid #000000;
+        padding: 3px;
+        cursor: pointer;
+    }
+    .button-active{
+        background: #aaaaaa;
+    }
+</style>
 
 <script>
 
@@ -25,12 +48,51 @@
 
     // let PIXEL_WIDTH = 18;
     // let PIXEL_HEIGHT = 24;
-    // let PIXEL_TEXT_OFFSET_X = 12;
-    // let PIXEL_TEXT_OFFSET_Y = 20;
+    // let PIXEL_TEXT_OFFSET_X = 13;
+    // let PIXEL_TEXT_OFFSET_Y = 22;
 
-    let SCREEN_WIDTH = 60;
+    let SCREEN_WIDTH = 56;
     let SCREEN_HEIGHT = 20;
 
+    // draw a single pixel (html canvas)
+    let draw_pixel = function(ch, color, x, y) {
+        let canvas_id = "pixel_" + x + "_" + y;
+        let canvas = document.getElementById(canvas_id);
+        if(canvas == null) {
+            return
+        }
+        let context = canvas.getContext("2d");
+        context.fillStyle = "#000000";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        // context.beginPath();
+        context.font = PIXEL_HEIGHT + "px monospace";
+        context.fillStyle = "hsl(0, 0%, " + Math.floor(color / 17.0 * 100) + "%)";
+        context.fillText(ch, PIXEL_TEXT_OFFSET_X, PIXEL_TEXT_OFFSET_Y);
+    }
+
+    // cookie get/set method
+    function setCookie(cname, cvalue, exdays) {
+        const d = new Date();
+        d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+        let expires = "expires="+d.toUTCString();
+        document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+    }
+    function getCookie(cname) {
+        let name = cname + "=";
+        let ca = document.cookie.split(';');
+        for(let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) === ' ') {
+                c = c.substring(1);
+            }
+            if (c.indexOf(name) === 0) {
+                return c.substring(name.length, c.length);
+            }
+        }
+        return "";
+    }
+
+    // implement origin drawing method
     let clearScreen = function() {
         // Clear the screen.
         for(let y of Array.from(Array(SCREEN_HEIGHT).keys())) {
@@ -46,42 +108,29 @@
     };
     let drawText = function(text, color, x, y) {
         // Draw the specified text. The color parameter is a number between 0 (darkest) and 17 (lightest).
+        color = parseInt(color)
+        x = parseInt(x);
+        y = parseInt(y);
         let x_indent = 0;
-        for(let ch of text) {
-            let canvas_id = "pixel_" + (x + x_indent).toString() + "_" + y;
-            let canvas = document.getElementById(canvas_id);
-            let context = canvas.getContext("2d");
-            context.fillStyle = "#000000";
-            context.fillRect(0, 0, canvas.width, canvas.height);
-            context.beginPath();
-            context.font = PIXEL_HEIGHT + "px monospace";
-            // context.font = "12px monospace";
-            context.fillStyle = "hsl(0, 0%, " + Math.floor((1 - color / 17.0) * 100) + "%)";
-            context.fillText(ch, PIXEL_TEXT_OFFSET_X, PIXEL_TEXT_OFFSET_Y)
+        for(let ch of text.toString()) {
+            draw_pixel(ch, color, x + x_indent, y);
             x_indent += 1;
             if(x_indent >= SCREEN_WIDTH) {
                 break
             }
         }
     };
-    let drawTextWrapped = function() {
+    let drawTextWrapped = function(text, color, x, y, width) {
         // Draw the specified text, wrapping it so that it is no more than width characters wide.
+        color = parseInt(color)
+        x = parseInt(x);
+        y = parseInt(y);
         let x_indent = 0;
         let y_indent = 0;
-        for(let ch of text) {
-            let canvas_id = "pixel_" + (x + x_indent).toString() + "_" + y;
-            let canvas = document.getElementById(canvas_id);
-            let context = canvas.getContext("2d");
-            context.fillStyle = "#000000";
-            context.fillRect(0, 0, canvas.width, canvas.height);
-            context.beginPath();
-            context.font = PIXEL_HEIGHT + "px monospace";
-            // context.font = "12px monospace";
-            console.log(color)
-            context.fillStyle = "hsl(0, 0%, " + Math.floor(color / 17.0 * 100) + "%)";
-            context.fillText(ch, PIXEL_TEXT_OFFSET_X, PIXEL_TEXT_OFFSET_Y)
+        for(let ch of text.toString()) {
+            draw_pixel(ch, color, x + x_indent, y + y_indent);
             x_indent += 1;
-            if(x_indent >= SCREEN_WIDTH) {
+            if(x_indent >= width) {
                 y_indent += 1;
                 if(y_indent >= SCREEN_HEIGHT) {
                     break;
@@ -90,19 +139,45 @@
             }
         }
     }
-    let drawBox = function() {
+    let drawBox = function(color, x, y, width, height) {
         // Draw a box using the built-in box drawing characters.
+        color = parseInt(color)
+        x = parseInt(x);
+        y = parseInt(y);
+        draw_pixel("╔", color, x, y);
+        draw_pixel("╗", color, x + width - 1, y);
+        draw_pixel("╚", color, x, y + height - 1);
+        draw_pixel("╝", color, x + width - 1, y + height - 1)
+        for(let i = 1; i < width - 1; i++) {
+            draw_pixel("═", color, x + i, y);
+            draw_pixel("═", color, x + i, y + height - 1);
+        }
+        for(let i = 1; i < height - 1; i++) {
+            draw_pixel("║", color, x, y + i);
+            draw_pixel("║", color, x + width - 1, y + i);
+        }
     }
-    let fillArea = function() {
+    let fillArea = function(symbol, color, x, y, width, height) {
         // Fill an area using the specified symbol.
+        color = parseInt(color)
+        x = parseInt(x);
+        y = parseInt(y);
+        for(let i = 0; i < width; i++) {
+            for(let j = 0; j < height; j++) {
+                draw_pixel(symbol, color, x + i, y + j);
+            }
+        }
     }
-    let saveData = function() {
+    let saveData = function(string) {
         // Write this server's persisted data string. You can convert a JavaScript object to a JSON string using JSON.stringify().
+        setCookie(getName(), string, 7);
     }
     let loadData = function() {
         // Read this server's persisted data string. You can convert a JSON string to a JavaScript object using JSON.parse().
+        return getCookie(getName());
     }
 
+    // initialize main screen
     let init_screen = function() {
         let screen = document.getElementById("screen");
         screen.style.width = (PIXEL_WIDTH * SCREEN_WIDTH).toString() + "px";
@@ -121,9 +196,12 @@
             screen_pixel_row_list.push("<div>" + row_pixel_list.join("") + "</div>");
         }
         screen.innerHTML = screen_pixel_row_list.join("");
-        clearScreen()
+        clearScreen();
     }
 
+    let update_instance = null;
+
+    // load server script
     let load_server_script = function() {
         document.getElementById("server_script_url").addEventListener("change", function() {
             let script = document.getElementById("server_script");
@@ -132,12 +210,20 @@
             }
             script = document.createElement("script");
             script.id = "server_script";
-            script.src = "NetMaze.js";
+            script.src = this.value;
             document.head.appendChild(script)
             script.onload = function() {
                 console.log("getName()", getName())
                 console.log("onConnect()", onConnect())
-                document.addEventListener("keydown", function(event) {
+                console.log("onUpdate()", onUpdate())
+                document.getElementById("button_pause").classList.add("button-active")
+                document.getElementById("button_step").classList.remove("button-active")
+                document.getElementById("button_run").classList.remove("button-active")
+                document.getElementById("button_reload").classList.remove("button-active")
+                if(update_instance != null) {
+                    clearInterval(update_instance);
+                }
+                document.addEventListener("keyup", function(event) {
                     // console.log(event)
                     if(event.ctrlKey && event.key === "r") {
                         event.preventDefault();
@@ -156,7 +242,52 @@
         }
     }
 
+    document.getElementById("button_pause").addEventListener("click", function(event) {
+        document.getElementById("button_pause").classList.add("button-active");
+        document.getElementById("button_step").classList.remove("button-active");
+        document.getElementById("button_run").classList.remove("button-active");
+        document.getElementById("button_reload").classList.remove("button-active");
+        if(update_instance != null) {
+            clearInterval(update_instance);
+        }
+    });
+    document.getElementById("button_step").addEventListener("click", function(event) {
+        document.getElementById("button_pause").classList.remove("button-active");
+        document.getElementById("button_step").classList.add("button-active");
+        document.getElementById("button_run").classList.remove("button-active");
+        document.getElementById("button_reload").classList.remove("button-active");
+        if(update_instance != null) {
+            clearInterval(update_instance);
+        }
+        onUpdate();
+        document.getElementById("button_pause").classList.add("button-active");
+        document.getElementById("button_step").classList.remove("button-active");
+    });
+    document.getElementById("button_run").addEventListener("click", function(event) {
+        document.getElementById("button_pause").classList.remove("button-active");
+        document.getElementById("button_step").classList.remove("button-active");
+        document.getElementById("button_run").classList.add("button-active");
+        document.getElementById("button_reload").classList.remove("button-active");
+        if(update_instance != null) {
+            clearInterval(update_instance);
+        }
+        update_instance = setInterval(function() {
+            onUpdate();
+        }, document.getElementById("update_intervals").value);
+
+    });
+    document.getElementById("button_reload").addEventListener("click", function(event) {
+        document.getElementById("button_pause").classList.remove("button-active");
+        document.getElementById("button_step").classList.remove("button-active");
+        document.getElementById("button_run").classList.remove("button-active");
+        document.getElementById("button_reload").classList.add("button-active");
+        if(update_instance != null) {
+            clearInterval(update_instance);
+        }
+        document.getElementById("server_script_url").dispatchEvent(new Event("change"));
+    });
+
+
     init_screen();
     load_server_script();
-    // drawText("Hello World", 0, 0, 0)
 </script>
