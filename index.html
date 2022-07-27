@@ -204,6 +204,7 @@
     // load server script
     let load_server_script = function() {
         document.getElementById("server_script_url").addEventListener("change", function() {
+            setCookie("server_script_url", this.value);
             let script = document.getElementById("server_script");
             if(script != null) {
                 script.remove()
@@ -238,6 +239,9 @@
         });
         let default_script = document.getElementById("server_script");
         if(default_script == null) {
+            if(getCookie("server_script_url") !== "") {
+                document.getElementById("server_script_url").value = getCookie("server_script_url");
+            }
             document.getElementById("server_script_url").dispatchEvent(new Event("change"));
         }
     }
