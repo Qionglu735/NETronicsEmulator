@@ -196,7 +196,6 @@
             screen_pixel_row_list.push("<div>" + row_pixel_list.join("") + "</div>");
         }
         screen.innerHTML = screen_pixel_row_list.join("");
-        clearScreen();
     }
 
     let update_instance = null;
@@ -214,6 +213,7 @@
             script.src = this.value;
             document.head.appendChild(script)
             script.onload = function() {
+                clearScreen();
                 console.log("getName()", getName())
                 console.log("onConnect()", onConnect())
                 console.log("onUpdate()", onUpdate())
