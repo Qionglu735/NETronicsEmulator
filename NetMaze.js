@@ -29,7 +29,7 @@ function onUpdate()
     for(let x in map) {
         for(let y in map[x]) {
             if(map[x][y] === -1) {
-                drawText("█", 15, x, y);
+                drawText("█", 3, x, y);
                 // drawText("█", 15, 2 * x + 1, y);
             }
         }
@@ -78,7 +78,7 @@ let is_chest_wall = function(x, y) {
     ) {
         return false;
     }
-    else if(  // chest room coner
+    else if(  // chest room corner
         (x === chest_room[chest_id].x - 1) && (y === chest_room[chest_id].y - 1) ||
         (x === chest_room[chest_id].x - 1) && (y === chest_room[chest_id].y + 1) ||
         (x === chest_room[chest_id].x + 1) && (y === chest_room[chest_id].y - 1) ||
@@ -102,16 +102,64 @@ let is_chest_wall = function(x, y) {
 let init_maze = function(){
     for(let i=0; i<MAZE_SIZE*MAZE_SIZE; i++) {
         maze_e[i] = [];
+        maze_e_prim[i] = [];
         for(let j=0; j<MAZE_SIZE*MAZE_SIZE; j++) {
             maze_e[i][j] = null;
+            maze_e_prim[i][j] = null;
         }
     }
+    let pos_room_list = [];
     for(let i=0; i<MAZE_SIZE; i++) {
         for(let j=0; j<MAZE_SIZE; j++) {
             maze_v[i * MAZE_SIZE + j] = {
                 "x": i,
                 "y": j,
+                "w": 0,
             };
+            if(i > 0 && i < MAZE_SIZE - 1 && j > 0 && j < MAZE_SIZE - 1) {
+                if(i === 1 && j === 1 || i === MAZE_SIZE - 2 && j === MAZE_SIZE - 2) {
+                    continue
+                }
+                pos_room_list.push(i * MAZE_SIZE + j);
+            }
+        }
+    }
+    chest_room = [];
+    // for(let i in Array.from(Array(Math.floor(Math.random() * 2)).keys())) {
+    for(let i in Array.from(Array(2).keys())) {
+        let chest_center = pos_room_list[Math.floor(Math.random() * pos_room_list.length)];
+        let x = maze_v[chest_center].x;
+        let y = maze_v[chest_center].y;
+        let exit_list = ["left", "top", "right", "bottom"];
+        if(x === 1) {
+            remove_element(exit_list, "left");
+        }
+        if(x === MAZE_SIZE - 2) {
+            remove_element(exit_list, "right");
+        }
+        if(y === 1) {
+            remove_element(exit_list, "top");
+        }
+        if(y === MAZE_SIZE - 2) {
+            remove_element(exit_list, "bottom");
+        }
+        chest_room.push({
+            "x": x,
+            "y": y,
+            "exit": exit_list[Math.floor(Math.random() * exit_list.length)],
+        })
+        let index_list = [-2, -1, 0, 1, 2];
+        for(let i in index_list) {
+            i = index_list[i];
+            for(let j in index_list) {
+                j = index_list[j];
+                remove_element(pos_room_list, (x + i) * MAZE_SIZE + (y + j));
+            }
+        }
+    }
+    console.log(chest_room)
+    for(let i=0; i<MAZE_SIZE; i++) {
+        for(let j=0; j<MAZE_SIZE; j++) {
             maze_v[i * MAZE_SIZE + j]["w"] = is_chest_wall(i, j) ? -1 : 0;
             if(j > 0) {
                 maze_e[i * MAZE_SIZE + j][i * MAZE_SIZE + (j - 1)] = {
@@ -232,6 +280,22 @@ let init_chest_room = function() {
                         maze_e_prim[(x + 1) * MAZE_SIZE + y][x * MAZE_SIZE + y] =
                             maze_e[(x + 1) * MAZE_SIZE + y][x * MAZE_SIZE + y];
                         maze_e_prim[(x + 1) * MAZE_SIZE + y][x * MAZE_SIZE + y].w = 0;
+                        if(y < room["y"] + 1) {
+                            maze_e_prim[x * MAZE_SIZE + y][(x + 1) * MAZE_SIZE + (y + 1)] = {
+                                "x1": x,
+                                "y1": y,
+                                "x2": x + 1,
+                                "y2": y + 1,
+                                "w": 0,
+                            };
+                            maze_e_prim[(x + 1) * MAZE_SIZE + (y + 1)][x * MAZE_SIZE + y] = {
+                                "x1": x + 1,
+                                "y1": y + 1,
+                                "x2": x,
+                                "y2": y,
+                                "w": 0,
+                            };
+                        }
                     }
                     if(y < room["y"] + 1) {
                         maze_e_prim[x * MAZE_SIZE + y][x * MAZE_SIZE + (y + 1)] =
@@ -261,7 +325,6 @@ let init_map = function() {
                 let _i = i - 1;
                 let _j = j - 1;
                 if (_i % 2 === 0 && _j % 2 === 0) {
-                    // map[i][j] = 0;
                     map[i][j] = maze_v[_i / 2 * MAZE_SIZE + _j / 2].w;
                 } else {
                     let maze_x1 = 0;
@@ -305,6 +368,19 @@ let init_map = function() {
 let remove = function(array, index) {
     if(index > -1) {
         array.splice(index, 1)
+    }
+    return array;
+}
+
+let remove_element = function(array, element) {
+    let i = 0;
+    while(i < array.length) {
+        if(array[i] === element) {
+            array.splice(i, 1)
+        }
+        else {
+            i += 1;
+        }
     }
     return array;
 }
