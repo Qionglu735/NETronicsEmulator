@@ -61,7 +61,7 @@ let chest_room = [
     }
 ]
 
-let is_chest_wall = function(x, y) {
+let is_chest_wall = function(x, y, x2=-1, y2=-1) {
     // console.log("is_chest_wall", x, y)
     let chest_id = -1;
     for(let c in chest_room) {
@@ -76,7 +76,7 @@ let is_chest_wall = function(x, y) {
     else if(  // chest room center
         x === chest_room[chest_id].x && y === chest_room[chest_id].y
     ) {
-        return false;
+        return true;
     }
     else if(  // chest room corner
         (x === chest_room[chest_id].x - 1) && (y === chest_room[chest_id].y - 1) ||
@@ -84,7 +84,7 @@ let is_chest_wall = function(x, y) {
         (x === chest_room[chest_id].x + 1) && (y === chest_room[chest_id].y - 1) ||
         (x === chest_room[chest_id].x + 1) && (y === chest_room[chest_id].y + 1)
     ) {
-        return true;
+        return false;
     }
     else if(  // chest room edge
         (x === chest_room[chest_id].x - 1) && (y === chest_room[chest_id].y) && chest_room[chest_id].exit === "left" ||
@@ -96,6 +96,60 @@ let is_chest_wall = function(x, y) {
     }
     else{
         return true;
+    }
+}
+
+let is_chest_center = function(x, y) {
+    let chest_id = -1;
+    for(let c in chest_room) {
+        if(Math.abs(x - chest_room[c].x) < 2 && Math.abs(y - chest_room[c].y) < 2) {
+            chest_id = c;
+        }
+    }
+
+    if(chest_id < 0) {
+        return false;
+    }
+    else if(  // chest room center
+        x === chest_room[chest_id].x && y === chest_room[chest_id].y
+    ) {
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
+let is_chest_edge = function(x, y) {
+    let chest_id = -1;
+    for(let c in chest_room) {
+        if(Math.abs(x - chest_room[c].x) < 2 && Math.abs(y - chest_room[c].y) < 2) {
+            chest_id = c;
+        }
+    }
+
+    if(chest_id < 0) {
+        return false;
+    }
+    else if(
+        (x === chest_room[chest_id].x - 1) && (y === chest_room[chest_id].y)
+    ) {
+        return "left";
+    }
+    else if(
+        (x === chest_room[chest_id].x) && (y === chest_room[chest_id].y - 1)
+    ) {
+        return "top";
+    }
+    else if(
+        (x === chest_room[chest_id].x + 1) && (y === chest_room[chest_id].y)
+    ) {
+        return "right";
+    }
+    else if(
+        (x === chest_room[chest_id].x) && (y === chest_room[chest_id].y + 1)
+    ) {
+        return "bottom";
     }
 }
 
@@ -160,23 +214,29 @@ let init_maze = function(){
     console.log(chest_room)
     for(let i=0; i<MAZE_SIZE; i++) {
         for(let j=0; j<MAZE_SIZE; j++) {
-            maze_v[i * MAZE_SIZE + j]["w"] = is_chest_wall(i, j) ? -1 : 0;
+            maze_v[i * MAZE_SIZE + j]["w"] = is_chest_center(i, j) ? -1 : 0;
             if(j > 0) {
                 maze_e[i * MAZE_SIZE + j][i * MAZE_SIZE + (j - 1)] = {
                     "x1": i,
                     "y1": j,
                     "x2": i,
                     "y2": j - 1,
-                    "w": maze_v[i * MAZE_SIZE + j].w >= 0 && maze_v[i * MAZE_SIZE + (j - 1)].w >= 0 ?
-                        Math.floor(WEIGHT_RANGE_LEFT + Math.random() * WEIGHT_RANGE_RIGHT) : -1,
+                    "w": is_chest_center(i, j)
+                    || is_chest_center(i, j - 1)
+                    || include(["left", "right"], is_chest_edge(i, j))
+                    || include(["left", "right"], is_chest_edge(i, j - 1)) ?
+                        -1 : Math.floor(WEIGHT_RANGE_LEFT + Math.random() * WEIGHT_RANGE_RIGHT),
                 };
                 maze_e[i * MAZE_SIZE + (j - 1)][i * MAZE_SIZE + j] = {
                     "x1": i,
                     "y1": j - 1,
                     "x2": i,
                     "y2": j,
-                    "w": maze_v[i * MAZE_SIZE + (j - 1)].w >= 0 && maze_v[i * MAZE_SIZE + j].w >= 0 ?
-                        Math.floor(WEIGHT_RANGE_LEFT + Math.random() * WEIGHT_RANGE_RIGHT) : -1,
+                    "w": is_chest_center(i, j)
+                    || is_chest_center(i, j - 1)
+                    || include(["left", "right"], is_chest_edge(i, j))
+                    || include(["left", "right"], is_chest_edge(i, j - 1)) ?
+                        -1 : Math.floor(WEIGHT_RANGE_LEFT + Math.random() * WEIGHT_RANGE_RIGHT),
                 };
             }
             if(i > 0) {
@@ -185,16 +245,22 @@ let init_maze = function(){
                     "y1": j,
                     "x2": i - 1,
                     "y2": j,
-                    "w": maze_v[i * MAZE_SIZE + j].w >= 0 && maze_v[(i - 1) * MAZE_SIZE + j].w >= 0 ?
-                        Math.floor(WEIGHT_RANGE_LEFT + Math.random() * WEIGHT_RANGE_RIGHT) : -1,
+                    "w": is_chest_center(i, j)
+                    || is_chest_center(i - 1, j)
+                    || include(["top", "bottom"], is_chest_edge(i, j))
+                    || include(["top", "bottom"], is_chest_edge(i - 1, j))  ?
+                        -1 : Math.floor(WEIGHT_RANGE_LEFT + Math.random() * WEIGHT_RANGE_RIGHT),
                 };
                 maze_e[(i - 1) * MAZE_SIZE + j][i * MAZE_SIZE + j] = {
                     "x1": i - 1,
                     "y1": j,
                     "x2": i,
                     "y2": j,
-                    "w": maze_v[(i - 1) * MAZE_SIZE + j].w >= 0 && maze_v[i * MAZE_SIZE + j].w >= 0 ?
-                        Math.floor(WEIGHT_RANGE_LEFT + Math.random() * WEIGHT_RANGE_RIGHT) : -1,
+                    "w": is_chest_center(i, j)
+                    || is_chest_center(i - 1, j)
+                    || include(["top", "bottom"], is_chest_edge(i, j))
+                    || include(["top", "bottom"], is_chest_edge(i - 1, j)) ?
+                        -1 : Math.floor(WEIGHT_RANGE_LEFT + Math.random() * WEIGHT_RANGE_RIGHT),
                 };
             }
         }
@@ -271,39 +337,51 @@ let init_chest_room = function() {
             y = parseInt(y);
             for(let i in chest_room) {
                 let room = chest_room[i];
-                if(Math.abs(x - room["x"]) <= 1 && Math.abs(y - room["y"]) <= 1) {
-                    maze_v[x * MAZE_SIZE + y].w = 0
-                    if(x < room["x"] + 1 ) {
-                        maze_e_prim[x * MAZE_SIZE + y][(x + 1) * MAZE_SIZE + y] =
-                            maze_e[x * MAZE_SIZE + y][(x + 1) * MAZE_SIZE + y];
-                        maze_e_prim[x * MAZE_SIZE + y][(x + 1) * MAZE_SIZE + y].w = 0;
-                        maze_e_prim[(x + 1) * MAZE_SIZE + y][x * MAZE_SIZE + y] =
-                            maze_e[(x + 1) * MAZE_SIZE + y][x * MAZE_SIZE + y];
-                        maze_e_prim[(x + 1) * MAZE_SIZE + y][x * MAZE_SIZE + y].w = 0;
-                        if(y < room["y"] + 1) {
-                            maze_e_prim[x * MAZE_SIZE + y][(x + 1) * MAZE_SIZE + (y + 1)] = {
+                let edge = is_chest_edge(x, y);
+                if(edge) {
+                    console.log(x, y, edge, room.exit, edge === room.exit)
+                    if(edge !== room.exit) {
+                        maze_v[x * MAZE_SIZE + y].w = -1;
+                    }
+                    if(edge === "top" || edge === "left") {
+                        maze_e_prim[x * MAZE_SIZE + y][(x + 1) * MAZE_SIZE + (y + 1)] = {
+                            "x1": x,
+                            "y1": y,
+                            "x2": x + 1,
+                            "y2": y + 1,
+                            "w": 0,
+                        };
+                        maze_e_prim[(x + 1) * MAZE_SIZE + (y + 1)][x * MAZE_SIZE + y] = {
+                            "x1": x + 1,
+                            "y1": y + 1,
+                            "x2": x,
+                            "y2": y,
+                            "w": 0,
+                        };
+                    }
+                }
+                else if(is_chest_center(x, y)) {
+                    maze_v[x * MAZE_SIZE + y].w = 0;
+                    let index_list = [-1, 0, 1];
+                    for(let xi in index_list) {
+                        xi = index_list[xi];
+                        for(let yj in index_list) {
+                            yj = index_list[yj];
+                            maze_e_prim[x * MAZE_SIZE + y][(x + xi) * MAZE_SIZE + (y + yj)] = {
                                 "x1": x,
                                 "y1": y,
-                                "x2": x + 1,
-                                "y2": y + 1,
+                                "x2": x + xi,
+                                "y2": y + yj,
                                 "w": 0,
                             };
-                            maze_e_prim[(x + 1) * MAZE_SIZE + (y + 1)][x * MAZE_SIZE + y] = {
-                                "x1": x + 1,
-                                "y1": y + 1,
+                            maze_e_prim[(x + xi) * MAZE_SIZE + (y + yj)][x * MAZE_SIZE + y] = {
+                                "x1": x + xi,
+                                "y1": y + yj,
                                 "x2": x,
                                 "y2": y,
                                 "w": 0,
                             };
                         }
-                    }
-                    if(y < room["y"] + 1) {
-                        maze_e_prim[x * MAZE_SIZE + y][x * MAZE_SIZE + (y + 1)] =
-                            maze_e[x * MAZE_SIZE + y][x * MAZE_SIZE + (y + 1)];
-                        maze_e_prim[x * MAZE_SIZE + y][x * MAZE_SIZE + (y + 1)].w = 0;
-                        maze_e_prim[x * MAZE_SIZE + (y + 1)][x * MAZE_SIZE + y] =
-                            maze_e[x * MAZE_SIZE + (y + 1)][x * MAZE_SIZE + y];
-                        maze_e_prim[x * MAZE_SIZE + (y + 1)][x * MAZE_SIZE + y].w = 0;
                     }
                 }
             }
